@@ -9,7 +9,9 @@ import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.*;
 
-public class FractalExplorer extends JFrame{
+
+
+public class FractalExplorer extends JFrame {
 
     static final int WIDTH = 600;
     static final int HEIGHT = 600;
@@ -18,7 +20,7 @@ public class FractalExplorer extends JFrame{
 
     static final double DEFAULT_ZOOM = 100.0;
     static final double  DEFAULT_TOP_LEFT_X = -3.0;
-    static final double  DEFAULT_TOP_LEFT_Y = -3.0;
+    static final double  DEFAULT_TOP_LEFT_Y = +3.0;
     
     
     double zoomFactor = DEFAULT_ZOOM;
@@ -31,8 +33,14 @@ public class FractalExplorer extends JFrame{
     public FractalExplorer() {
         setInitialGUIProperties();
         addCanvas();
+        canvas.addKeyStrokeEvents();
         updateFractal();
     }
+
+    public static void main(String[] args) {
+        new FractalExplorer();
+    }
+
 
     private void updateFractal() {
 
@@ -54,11 +62,17 @@ public class FractalExplorer extends JFrame{
     }
 
     private int makeColor(int iterCount) {
+
+        int color = 0b10111010101010111010011; 
+        int mask  = 0b000000000000010101110111; 
+
+        int shiftMag = iterCount / 13;
+
         if (iterCount == MAX_ITER) {
             return Color.BLACK.getRGB();
         }
 
-        return Color.PINK.getRGB();
+        return color | (mask << shiftMag);
     }
 
     private double getXPos(int x) {
@@ -124,24 +138,63 @@ public class FractalExplorer extends JFrame{
         fractalImage = new BufferedImage(HEIGHT, WIDTH, BufferedImage.TYPE_INT_RGB);
         canvas.setVisible(true);
         this.add(canvas, BorderLayout.CENTER);
-
+    
     }
 
-    public static void main(String[] args) {
 
-        new FractalExplorer();
+    public void adjustZoom( double newX, double newY, double newZoomFactor ) {
+		
+            topLeftX += newX/zoomFactor;
+            topLeftY -= newY/zoomFactor;
+            
+            zoomFactor = newZoomFactor;
+            
+            topLeftX -= ( WIDTH/2) / zoomFactor;
+            topLeftY += (HEIGHT/2) / zoomFactor;
+            
+            updateFractal();
+            
+    } // adjustZoom
 
-    }
+    private class Canvas extends JPanel implements MouseListener {
 
-    private class Canvas extends JPanel {
+        public Canvas() {
+			addMouseListener(this);
+		} 
+		
+		@Override public Dimension getPreferredSize() {
+			return new Dimension(WIDTH, HEIGHT);
+		} // getPreferredSize
+		
+		@Override public void paintComponent(Graphics drawingObj) {
+			drawingObj.drawImage( fractalImage, 0, 0, null );
+		} // paintComponent
 
-        @Override public Dimension getPreferredSize() {
-            return new Dimension(WIDTH, HEIGHT);
-        }
+        @Override public void mousePressed(MouseEvent mouse) {
+			
+			double x = (double) mouse.getX();
+			double y = (double) mouse.getY();
+			
+			switch( mouse.getButton() ) {
+				
+				// Left
+				case MouseEvent.BUTTON1:
+					adjustZoom( x, y, zoomFactor*2 );
+					break;
+				
+				// Right
+				case MouseEvent.BUTTON3:
+					adjustZoom( x, y, zoomFactor/2 );
+					break;
+				
+			}
+			
+		} 
 
-        @Override public void paintComponent(Graphics drawingObj) {
-            drawingObj.drawImage(fractalImage, 0, 0, null);
-        }
+        @Override public void mouseReleased(MouseEvent mouse) {}
+        @Override public void mouseClicked(MouseEvent mouse) {}
+        @Override public void mouseEntered(MouseEvent mouse) {}
+        @Override public void mouseExited(MouseEvent mouse) {}
 
     }
 }
